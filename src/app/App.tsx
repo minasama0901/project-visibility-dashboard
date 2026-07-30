@@ -192,6 +192,12 @@ const PRIORITY_CFG: Record<Priority, { bg: string; text: string }> = {
   low:    { bg: "bg-slate-100", text: "text-slate-600" },
 };
 
+const HEALTH_CFG: Record<string, { bg: string; text: string; dot: string; selectBg: string }> = {
+  "On Track": { bg: "bg-green-500/15", text: "text-green-300", dot: "bg-green-400", selectBg: "#16a34a" },
+  "At Risk":  { bg: "bg-amber-500/15", text: "text-amber-300", dot: "bg-amber-400", selectBg: "#d97706" },
+  "Delayed":  { bg: "bg-red-500/15",   text: "text-red-300",   dot: "bg-red-400",   selectBg: "#dc2626" },
+};
+
 function StatusPill({ status }: { status: ActionStatus }) {
   const s = STATUS_CFG[status];
   return (
@@ -214,7 +220,11 @@ function PriorityBadge({ priority }: { priority: Priority }) {
 // ─── Generic editable field components ────────────────────────────────────────
 
 const editBoxClass =
-  "bg-white border border-accent/50 rounded px-1.5 py-0.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors";
+  "bg-white border border-accent/50 rounded px-1.5 py-0.5 outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors box-border min-w-0 max-w-full";
+
+// Always-readable dark text on the white edit background, regardless of what
+// color classes the surrounding (display-mode) className specifies.
+const editTextColor = "#0f172a";
 
 function EField({
   value,
@@ -223,6 +233,7 @@ function EField({
   className = "",
   mono = false,
   as = "span",
+  fontSize = "12px",
 }: {
   value: string;
   onChange: (v: string) => void;
@@ -230,12 +241,13 @@ function EField({
   className?: string;
   mono?: boolean;
   as?: "span" | "div" | "h1" | "p";
+  fontSize?: string;
 }) {
-  const style = mono ? { fontFamily: "'JetBrains Mono', monospace" } : undefined;
+  const fontFamily = mono ? "'JetBrains Mono', monospace" : undefined;
   if (!editMode) {
     const As = as as any;
     return (
-      <As className={className} style={style}>
+      <As className={className} style={{ fontFamily }}>
         {value}
       </As>
     );
@@ -246,7 +258,7 @@ function EField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={`${editBoxClass} ${className}`}
-      style={style}
+      style={{ fontFamily, fontSize, color: editTextColor }}
     />
   );
 }
@@ -257,12 +269,14 @@ function EArea({
   editMode,
   className = "",
   rows = 2,
+  fontSize = "12px",
 }: {
   value: string;
   onChange: (v: string) => void;
   editMode: boolean;
   className?: string;
   rows?: number;
+  fontSize?: string;
 }) {
   if (!editMode) return <span className={className}>{value}</span>;
   return (
@@ -271,6 +285,53 @@ function EArea({
       onChange={(e) => onChange(e.target.value)}
       rows={rows}
       className={`${editBoxClass} w-full resize-y block ${className}`}
+      style={{ fontSize, color: editTextColor }}
+    />
+  );
+}
+
+// Converts common display formats ("Jul 10, 2026") to/from the yyyy-mm-dd
+// format native <input type="date"> requires.
+function toInputDate(display: string): string {
+  if (!display) return "";
+  const d = new Date(display);
+  if (isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+function fromInputDate(iso: string): string {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function EDate({
+  value,
+  onChange,
+  editMode,
+  className = "",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  editMode: boolean;
+  className?: string;
+}) {
+  if (!editMode) {
+    return (
+      <span className={className} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        {value}
+      </span>
+    );
+  }
+  return (
+    <input
+      type="date"
+      value={toInputDate(value)}
+      onChange={(e) => onChange(e.target.value ? fromInputDate(e.target.value) : "")}
+      className={`${editBoxClass} ${className}`}
+      style={{ fontSize: "11px", color: editTextColor }}
     />
   );
 }
@@ -473,14 +534,16 @@ export default function App() {
                   onChange={(v) => updateProject({ code: v })}
                   editMode={editMode}
                   mono
-                  className="text-[11px] px-2 py-0.5 rounded border text-white/70 border-white/15 bg-white/5"
+                  fontSize="11px"
+                  className="px-2 py-0.5 rounded border text-white/70 border-white/15 bg-white/5"
                 />
                 <span className="text-white/20">·</span>
                 <EField
                   value={project.product}
                   onChange={(v) => updateProject({ product: v })}
                   editMode={editMode}
-                  className="text-xs text-white/50 truncate"
+                  fontSize="12px"
+                  className="text-white/50 truncate"
                 />
               </div>
               <EField
@@ -488,14 +551,16 @@ export default function App() {
                 onChange={(v) => updateProject({ name: v })}
                 editMode={editMode}
                 as="h1"
-                className="text-base font-semibold leading-tight"
+                fontSize="16px"
+                className="font-semibold leading-tight w-full"
               />
               <div className="mt-0.5">
                 <EField
                   value={project.client}
                   onChange={(v) => updateProject({ client: v })}
                   editMode={editMode}
-                  className="text-sm text-white/55"
+                  fontSize="14px"
+                  className="text-white/55 w-full"
                 />
               </div>
             </div>
@@ -507,7 +572,8 @@ export default function App() {
                   value={project.cdmoPM}
                   onChange={(v) => updateProject({ cdmoPM: v })}
                   editMode={editMode}
-                  className="text-sm font-medium"
+                  fontSize="14px"
+                  className="font-medium w-24"
                 />
                 <div className="text-[11px] text-accent">Yuhan CDMO</div>
               </div>
@@ -518,7 +584,8 @@ export default function App() {
                   value={project.clientPM}
                   onChange={(v) => updateProject({ clientPM: v })}
                   editMode={editMode}
-                  className="text-sm font-medium"
+                  fontSize="14px"
+                  className="font-medium w-24"
                 />
                 <div className="text-[11px] text-accent">Potential Therapeutics</div>
               </div>
@@ -530,15 +597,24 @@ export default function App() {
                   <select
                     value={project.health}
                     onChange={(e) => updateProject({ health: e.target.value })}
-                    className="text-xs font-semibold rounded-full bg-white/10 border border-white/20 text-white px-3 py-1 outline-none"
+                    className="font-semibold rounded-full border-2 px-3 py-1 outline-none text-white"
+                    style={{
+                      fontSize: "12px",
+                      backgroundColor: HEALTH_CFG[project.health]?.selectBg ?? "#64748b",
+                      borderColor: HEALTH_CFG[project.health]?.selectBg ?? "#64748b",
+                    }}
                   >
                     <option value="On Track">On Track</option>
                     <option value="At Risk">At Risk</option>
                     <option value="Delayed">Delayed</option>
                   </select>
                 ) : (
-                  <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/15 text-green-300 text-xs font-semibold border border-green-500/25">
-                    <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                  <span
+                    className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border border-white/10 ${
+                      HEALTH_CFG[project.health]?.bg ?? "bg-slate-500/15"
+                    } ${HEALTH_CFG[project.health]?.text ?? "text-slate-300"}`}
+                  >
+                    <span className={`w-2 h-2 rounded-full animate-pulse ${HEALTH_CFG[project.health]?.dot ?? "bg-slate-400"}`} />
                     {project.health}
                   </span>
                 )}
@@ -573,7 +649,8 @@ export default function App() {
                   value={project.lastUpdated}
                   onChange={(v) => updateProject({ lastUpdated: v })}
                   editMode={editMode}
-                  className="text-[11px] text-white/40"
+                  fontSize="11px"
+                  className="text-white/40 w-40"
                 />
               </div>
             </div>
@@ -586,7 +663,8 @@ export default function App() {
                 value={project.currentPhase}
                 onChange={(v) => updateProject({ currentPhase: v })}
                 editMode={editMode}
-                className="text-white font-semibold"
+                fontSize="12px"
+                className="text-white font-semibold w-40"
               />
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs bg-white/6 border-white/10">
@@ -595,7 +673,8 @@ export default function App() {
                 value={project.nextMilestone}
                 onChange={(v) => updateProject({ nextMilestone: v })}
                 editMode={editMode}
-                className="text-white font-semibold"
+                fontSize="12px"
+                className="text-white font-semibold w-40"
               />
             </div>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs bg-accent/15 border-accent/25">
@@ -931,14 +1010,15 @@ export default function App() {
                         {a.id}
                       </td>
                       <td className="px-3 py-3">
-                        <EField value={a.title} onChange={(v) => updateAction(ai, { title: v })} editMode={editMode} className="font-medium text-foreground leading-snug" />
+                        <EField value={a.title} onChange={(v) => updateAction(ai, { title: v })} editMode={editMode} className="font-medium text-foreground leading-snug w-full" />
                       </td>
                       <td className="px-3 py-3">
                         {editMode ? (
                           <select
                             value={a.owner}
                             onChange={(e) => updateAction(ai, { owner: e.target.value })}
-                            className={`${editBoxClass} text-[10px]`}
+                            className={`${editBoxClass} w-full`}
+                            style={{ fontSize: "10px", color: editTextColor }}
                           >
                             <option value="Yuhan CDMO">Yuhan CDMO</option>
                             <option value="Potential Therapeutics">Potential Therapeutics</option>
@@ -958,20 +1038,21 @@ export default function App() {
                         )}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">
-                        <EField value={a.dept} onChange={(v) => updateAction(ai, { dept: v })} editMode={editMode} />
+                        <EField value={a.dept} onChange={(v) => updateAction(ai, { dept: v })} editMode={editMode} className="w-full" />
                       </td>
                       <td className="px-3 py-3 font-medium text-foreground">
-                        <EField value={a.pic} onChange={(v) => updateAction(ai, { pic: v })} editMode={editMode} />
+                        <EField value={a.pic} onChange={(v) => updateAction(ai, { pic: v })} editMode={editMode} className="w-full" />
                       </td>
                       <td className="px-3 py-3 text-muted-foreground">
-                        <EField value={a.due} onChange={(v) => updateAction(ai, { due: v })} editMode={editMode} mono />
+                        <EDate value={a.due} onChange={(v) => updateAction(ai, { due: v })} editMode={editMode} className="w-full" />
                       </td>
                       <td className="px-3 py-3">
                         {editMode ? (
                           <select
                             value={a.status}
                             onChange={(e) => updateAction(ai, { status: e.target.value as ActionStatus })}
-                            className={`${editBoxClass} text-[10px]`}
+                            className={`${editBoxClass} w-full`}
+                            style={{ fontSize: "10px", color: editTextColor }}
                           >
                             <option value="open">Open</option>
                             <option value="in-progress">In Progress</option>
@@ -983,7 +1064,7 @@ export default function App() {
                         )}
                       </td>
                       <td className="px-3 py-3 text-muted-foreground italic">
-                        <EField value={a.note} onChange={(v) => updateAction(ai, { note: v })} editMode={editMode} />
+                        <EField value={a.note} onChange={(v) => updateAction(ai, { note: v })} editMode={editMode} className="w-full" />
                       </td>
                       {editMode && (
                         <td className="px-3 py-3">
@@ -1090,7 +1171,11 @@ export default function App() {
                 </h2>
               </div>
 
-              <div className="grid grid-cols-2 divide-x divide-border h-[calc(100%-53px)]">
+              <div
+                className={`grid ${
+                  editMode ? "grid-cols-1 divide-y" : "grid-cols-2 divide-x h-[calc(100%-53px)]"
+                } divide-border`}
+              >
                 <div className="p-4 overflow-y-auto">
                   <div className="flex items-center justify-between gap-2 mb-3">
                     <div className="flex items-center gap-2">
@@ -1138,7 +1223,7 @@ export default function App() {
                         </p>
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-1 text-[10px] text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                            Due: <EField value={req.due} onChange={(v) => updateRequest("clientRequests", ri, { due: v })} editMode={editMode} mono />
+                            Due: <EDate value={req.due} onChange={(v) => updateRequest("clientRequests", ri, { due: v })} editMode={editMode} />
                           </span>
                           <div className="flex items-center gap-3">
                             <label className="flex items-center gap-1 cursor-pointer select-none">
@@ -1226,7 +1311,7 @@ export default function App() {
                         </p>
                         <div className="flex items-center justify-between">
                           <span className="flex items-center gap-1 text-[10px] text-muted-foreground" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                            Due: <EField value={req.due} onChange={(v) => updateRequest("cdmoRequests", ri, { due: v })} editMode={editMode} mono />
+                            Due: <EDate value={req.due} onChange={(v) => updateRequest("cdmoRequests", ri, { due: v })} editMode={editMode} />
                           </span>
                           <div className="flex items-center gap-3">
                             <label className="flex items-center gap-1 cursor-pointer select-none">
