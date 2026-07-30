@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+*.local
+
+# Tauri build outputs
+src-tauri/target
+src-tauri/gen
+
+# Editor/OS
+.DS_Store
+.vscode
+.idea

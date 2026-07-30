@@ -1,0 +1,48 @@
+name: Build Desktop App
+
+# Runs automatically when you push a version tag (e.g. v0.1.0),
+# or manually from the Actions tab in GitHub.
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos-latest'   # Builds a universal macOS binary (Intel + Apple Silicon)
+            args: '--target universal-apple-darwin'
+          - platform: 'windows-latest' # Builds the Windows installer
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Project Visibility Dashboard v__VERSION__'
+          releaseBody: 'See the assets below to download for Windows or macOS.'
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
