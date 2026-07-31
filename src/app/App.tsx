@@ -247,7 +247,7 @@ function EField({
   if (!editMode) {
     const As = as as any;
     return (
-      <As className={className} style={{ fontFamily }}>
+      <As className={className} style={{ fontFamily, fontSize }}>
         {value}
       </As>
     );
@@ -1197,7 +1197,8 @@ export default function App() {
                             value={req.title}
                             onChange={(v) => updateRequest("clientRequests", ri, { title: v })}
                             editMode={editMode}
-                            className="text-[11px] font-semibold text-foreground leading-tight flex-1"
+                            fontSize="11px"
+                            className="font-semibold text-foreground leading-tight flex-1"
                           />
                           {editMode ? (
                             <select
@@ -1285,7 +1286,8 @@ export default function App() {
                             value={req.title}
                             onChange={(v) => updateRequest("cdmoRequests", ri, { title: v })}
                             editMode={editMode}
-                            className="text-[11px] font-semibold text-foreground leading-tight flex-1"
+                            fontSize="11px"
+                            className="font-semibold text-foreground leading-tight flex-1"
                           />
                           {editMode ? (
                             <select
