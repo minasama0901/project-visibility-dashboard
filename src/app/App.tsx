@@ -258,7 +258,7 @@ function EField({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className={`${editBoxClass} ${className}`}
-      style={{ fontFamily, fontSize, color: editTextColor }}
+      style={{ fontFamily, fontSize, color: editTextColor, backgroundColor: "#ffffff" }}
     />
   );
 }
@@ -285,7 +285,7 @@ function EArea({
       onChange={(e) => onChange(e.target.value)}
       rows={rows}
       className={`${editBoxClass} w-full resize-y block ${className}`}
-      style={{ fontSize, color: editTextColor }}
+      style={{ fontSize, color: editTextColor, backgroundColor: "#ffffff" }}
     />
   );
 }
@@ -331,7 +331,57 @@ function EDate({
       value={toInputDate(value)}
       onChange={(e) => onChange(e.target.value ? fromInputDate(e.target.value) : "")}
       className={`${editBoxClass} ${className}`}
-      style={{ fontSize: "11px", color: editTextColor }}
+      style={{ fontSize: "11px", color: editTextColor, backgroundColor: "#ffffff" }}
+    />
+  );
+}
+
+// Converts month-level display strings ("Feb 2026", "Apr–May 2026") to/from
+// the yyyy-mm format native <input type="month"> requires. For a range like
+// "Apr–May 2026" this picks up the first month mentioned as the starting value;
+// once the user picks a new month it becomes a clean single "MMM YYYY" string.
+function toInputMonth(display: string): string {
+  if (!display) return "";
+  const yearMatch = display.match(/(\d{4})/);
+  const monthMatch = display.match(/[A-Za-z]{3,}/);
+  if (!yearMatch || !monthMatch) return "";
+  const d = new Date(`${monthMatch[0]} 1, ${yearMatch[1]}`);
+  if (isNaN(d.getTime())) return "";
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`;
+}
+function fromInputMonth(iso: string): string {
+  if (!iso) return "";
+  const [y, m] = iso.split("-").map(Number);
+  return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+function EMonth({
+  value,
+  onChange,
+  editMode,
+  className = "",
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  editMode: boolean;
+  className?: string;
+}) {
+  if (!editMode) {
+    return (
+      <span className={className} style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+        {value}
+      </span>
+    );
+  }
+  return (
+    <input
+      type="month"
+      value={toInputMonth(value)}
+      onChange={(e) => onChange(e.target.value ? fromInputMonth(e.target.value) : "")}
+      className={`${editBoxClass} ${className}`}
+      style={{ fontSize: "11px", color: editTextColor, backgroundColor: "#ffffff" }}
     />
   );
 }
@@ -587,7 +637,7 @@ export default function App() {
                   fontSize="14px"
                   className="font-medium w-24"
                 />
-                <div className="text-[11px] text-accent">Potential Therapeutics</div>
+                <div className="text-[11px] text-accent truncate w-24 mx-auto" title={project.client}>{project.client}</div>
               </div>
             </div>
 
@@ -747,17 +797,17 @@ export default function App() {
                             editMode
                             className="text-xs font-semibold leading-tight text-center w-24"
                           />
-                          <EField
+                          <EMonth
                             value={m.date}
                             onChange={(v) => updateMilestone(i, { date: v })}
                             editMode
-                            mono
                             className="text-[10px] text-center w-24"
                           />
                           <select
                             value={m.status}
                             onChange={(e) => updateMilestone(i, { status: e.target.value as MilestoneStatus })}
-                            className={`${editBoxClass} text-[10px]`}
+                            className={`${editBoxClass}`}
+                            style={{ fontSize: "10px", color: editTextColor, backgroundColor: "#ffffff" }}
                           >
                             <option value="done">done</option>
                             <option value="active">active</option>
@@ -890,7 +940,7 @@ export default function App() {
 
                       <div className="w-28 shrink-0">
                         {editMode ? (
-                          <EField value={batch.planned} onChange={(v) => updateBatch(bi, { planned: v })} editMode mono className="text-[11px]" />
+                          <EDate value={batch.planned} onChange={(v) => updateBatch(bi, { planned: v })} editMode className="text-[11px]" />
                         ) : (
                           <div
                             className="text-[11px] text-muted-foreground"
@@ -906,7 +956,8 @@ export default function App() {
                           <select
                             value={batch.status}
                             onChange={(e) => updateBatch(bi, { status: e.target.value as BatchStatus })}
-                            className={`${editBoxClass} text-[11px]`}
+                            className={`${editBoxClass}`}
+                            style={{ fontSize: "11px", color: editTextColor, backgroundColor: "#ffffff" }}
                           >
                             <option value="active">In Progress</option>
                             <option value="completed">Completed</option>
@@ -1018,7 +1069,7 @@ export default function App() {
                             value={a.owner}
                             onChange={(e) => updateAction(ai, { owner: e.target.value })}
                             className={`${editBoxClass} w-full`}
-                            style={{ fontSize: "10px", color: editTextColor }}
+                            style={{ fontSize: "10px", color: editTextColor, backgroundColor: "#ffffff" }}
                           >
                             <option value="Yuhan CDMO">Yuhan CDMO</option>
                             <option value="Potential Therapeutics">Potential Therapeutics</option>
@@ -1052,7 +1103,7 @@ export default function App() {
                             value={a.status}
                             onChange={(e) => updateAction(ai, { status: e.target.value as ActionStatus })}
                             className={`${editBoxClass} w-full`}
-                            style={{ fontSize: "10px", color: editTextColor }}
+                            style={{ fontSize: "10px", color: editTextColor, backgroundColor: "#ffffff" }}
                           >
                             <option value="open">Open</option>
                             <option value="in-progress">In Progress</option>
@@ -1104,7 +1155,8 @@ export default function App() {
                           <select
                             value={item.current}
                             onChange={(e) => updateFollowUp(fi, { current: Number(e.target.value) })}
-                            className={`${editBoxClass} text-[10px]`}
+                            className={`${editBoxClass}`}
+                            style={{ fontSize: "10px", color: editTextColor, backgroundColor: "#ffffff" }}
                           >
                             {FOLLOW_UP_STATES.map((s, si) => (
                               <option key={si} value={si}>{s}</option>
@@ -1204,7 +1256,8 @@ export default function App() {
                             <select
                               value={req.priority}
                               onChange={(e) => updateRequest("clientRequests", ri, { priority: e.target.value as Priority })}
-                              className={`${editBoxClass} text-[10px]`}
+                              className={`${editBoxClass}`}
+                              style={{ fontSize: "10px", color: editTextColor, backgroundColor: "#ffffff" }}
                             >
                               <option value="high">high</option>
                               <option value="medium">medium</option>
@@ -1293,7 +1346,8 @@ export default function App() {
                             <select
                               value={req.priority}
                               onChange={(e) => updateRequest("cdmoRequests", ri, { priority: e.target.value as Priority })}
-                              className={`${editBoxClass} text-[10px]`}
+                              className={`${editBoxClass}`}
+                              style={{ fontSize: "10px", color: editTextColor, backgroundColor: "#ffffff" }}
                             >
                               <option value="high">high</option>
                               <option value="medium">medium</option>
@@ -1383,7 +1437,7 @@ export default function App() {
                   {editMode ? (
                     <>
                       <EField value={m.label} onChange={(v) => updateUpcoming(i, { label: v })} editMode className="text-xs flex-1" />
-                      <EField value={m.date} onChange={(v) => updateUpcoming(i, { date: v })} editMode mono className="text-[11px] w-16" />
+                      <EDate value={m.date} onChange={(v) => updateUpcoming(i, { date: v })} editMode className="w-32" />
                       <label className="flex items-center gap-1 text-[10px]" title="Urgent">
                         <input type="checkbox" checked={m.urgent} onChange={(e) => updateUpcoming(i, { urgent: e.target.checked })} />
                         !
@@ -1432,7 +1486,8 @@ export default function App() {
                         <select
                           value={e.level}
                           onChange={(ev) => updateEscalation(i, { level: ev.target.value as EscalationLevel })}
-                          className={`${editBoxClass} text-[10px]`}
+                          className={`${editBoxClass}`}
+                          style={{ fontSize: "10px", color: editTextColor, backgroundColor: "#ffffff" }}
                         >
                           <option value="high">high</option>
                           <option value="medium">medium</option>
@@ -1511,7 +1566,7 @@ export default function App() {
                 <div key={i} className="flex items-start gap-2.5">
                   {editMode ? (
                     <>
-                      <EField value={u.date} onChange={(v) => updateUpdateItem(i, { date: v })} editMode mono className="text-[10px] w-10" />
+                      <EDate value={u.date} onChange={(v) => updateUpdateItem(i, { date: v })} editMode className="w-32" />
                       <EArea value={u.text} onChange={(v) => updateUpdateItem(i, { text: v })} editMode rows={2} className="text-[11px] flex-1" />
                       <DeleteBtn onClick={() => removeUpdateItem(i)} />
                     </>
